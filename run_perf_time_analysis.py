@@ -87,33 +87,38 @@ def get_trends(stats_data, window):
 
 # unit tests
 
-def generate_test_class(trends, threshold):
-    class TestSequenceMeta(type):
-        def __new__(mcs, name, bases, dict):
-            def gen_test(trend):
-                def test(self):
-                    beautiful_value = trend.value * 100
-                    self.assertLessEqual(beautiful_value, threshold,
-                                         'Performance degradation for "{test_name}" is {percent:3.2f}%'.format(
-                                             test_name=trend.name, percent=beautiful_value))
+def generate_test_classes(trends, threshold):
+    def get_class(branch, trends):
+        class TestSequenceMeta(type):
+            def __new__(mcs, name, bases, dict):
+                def gen_test(trend):
+                    def test(self):
+                        beautiful_value = trend.value * 100
+                        self.assertLessEqual(beautiful_value, threshold,
+                                             'Performance degradation for "{test_name}" is {percent:3.2f}%'.format(
+                                                 test_name=trend.name, percent=beautiful_value))
 
-                return test
+                    return test
 
-            for trend in trends:
-                name = 'test_perf_on_{branch}_{test_name}'.format(branch=trend.branch, test_name=trend.name)
-                dict[name] = gen_test(trend)
-            return type.__new__(mcs, name, bases, dict)
+                for trend in trends:
+                    property_name = 'test_' + trend.name.replace('.', '_')
+                    dict[property_name] = gen_test(trend)
+                return type.__new__(mcs, 'Test_' + str(branch), bases, dict)
 
-    class TestSequence(unittest.TestCase):
-        __metaclass__ = TestSequenceMeta
+        class TestSequence(unittest.TestCase):
+            __metaclass__ = TestSequenceMeta
 
-    return TestSequence
+        return TestSequence
+
+    for branch, branch_trends in groupby(trends, key=lambda t: t.branch):
+        yield get_class(branch, branch_trends)
 
 
-def run_tests(Klass, merge_file):
+def run_tests(classes, merge_file):
     loader = unittest.TestLoader()
-    test_suite = loader.loadTestsFromTestCase(Klass)
-    xmlrunner.XMLTestRunner(output=directory).run(test_suite)
+    for Klass in classes:
+        test_suite = loader.loadTestsFromTestCase(Klass)
+        xmlrunner.XMLTestRunner(output=directory).run(test_suite)
 
     if merge_file:
         merge_test_results(merge_file)
@@ -181,6 +186,6 @@ if __name__ == '__main__':
     raw_stats = get_stats_data(args.url, args.days)
     trends = get_trends(raw_stats, args.window)
 
-    Klass = generate_test_class(trends, args.threshold)
+    classes = generate_test_classes(trends, args.threshold)
 
-    run_tests(Klass, args.merge_file)
+    run_tests(classes, args.merge_file)
