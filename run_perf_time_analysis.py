@@ -15,7 +15,7 @@ parser = argparse.ArgumentParser(description='Analyze perf tests data within the
 parser.add_argument('-u', '--url', type=str, nargs='?', help='ElasticSearch url', default='http://192.168.2.95:9200')
 parser.add_argument('-w', '--window', type=int, nargs='?', help='Moving average window', default=10)
 parser.add_argument('-d', '--days', type=int, nargs='?', help='Number of days to analyze', default=20)
-parser.add_argument('-t', '--threshold', type=int, nargs='?', help='Threshold, %', default=3)
+parser.add_argument('-t', '--threshold', type=int, nargs='?', help='Threshold, %', default=2)
 parser.add_argument('-mf', '--merge_file', help='merge all test results xml into one file')
 
 directory = '.results'
@@ -46,7 +46,9 @@ def get_stats_data(url, days):
             'query': {
                 'filtered': {
                     'query': {
-                        'match_all': {}
+                        'match': {
+                            'metric_type': 'http_metric'
+                        }
                     }
                 }
             },
