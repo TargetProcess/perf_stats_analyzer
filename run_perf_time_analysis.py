@@ -74,11 +74,7 @@ def get_stats_data(url, days):
 
 def get_trends(stats_data, window):
     for branch, branch_records in groupby(sorted(stats_data, key=lambda r: r.branch), lambda r: r.branch):
-        # if branch != 'develop':
-        #     continue
         for key, test_records in groupby(sorted(branch_records, key=lambda r: r.name), lambda r: r.name):
-            # if key != 'tc by us list - treeView # basic_load_cat':
-            #     continue
             values = map(lambda r: r.value, sorted(test_records, key=lambda r: r.timestamp))
 
             if len(values) < window * 2:
