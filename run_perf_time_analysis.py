@@ -96,7 +96,7 @@ def generate_test_classes(moving_averages):
                     def test(self):
                         # last build raising trend?
                         trend_percent = trend(moving_average.value) * 100
-                        instant_threshold = 2
+                        instant_threshold = 3
 
                         self.assertLessEqual(trend_percent, instant_threshold,
                                              'Instant performance degradation for "{test_name}" is {percent:3.2f}%'.format(
@@ -111,7 +111,7 @@ def generate_test_classes(moving_averages):
                         raising_trend = reversed(list(takewhile(lambda (prv, nxt): nxt > prv, reversed(deltas))))
                         data = list(raising_trend)
                         if len(data) > 0:
-                            long_threshold = 3
+                            long_threshold = 5
                             long_trend_percent = trend([data[0][0], data[-1][1]]) * 100
 
                             self.assertLessEqual(long_trend_percent, long_threshold,
