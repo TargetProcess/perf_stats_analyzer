@@ -1,7 +1,7 @@
 import argparse
 import unittest
 from collections import namedtuple
-from itertools import groupby
+from itertools import groupby, takewhile
 import xml.etree.ElementTree as ET
 
 import numpy as np
@@ -15,7 +15,6 @@ parser = argparse.ArgumentParser(description='Analyze perf tests data within the
 parser.add_argument('-u', '--url', type=str, nargs='?', help='ElasticSearch url', default='http://192.168.2.95:9200')
 parser.add_argument('-w', '--window', type=int, nargs='?', help='Moving average window', default=10)
 parser.add_argument('-d', '--days', type=int, nargs='?', help='Number of days to analyze', default=20)
-parser.add_argument('-t', '--threshold', type=int, nargs='?', help='Threshold, %', default=2)
 parser.add_argument('-mf', '--merge_file', help='merge all test results xml into one file')
 
 directory = '.results'
@@ -29,7 +28,7 @@ StatRecord = namedtuple('StatRecord', [
     'value'
 ])
 
-TrendRecord = namedtuple('TrendRecord', [
+MovingAverageRecord = namedtuple('TrendRecord', [
     'branch',
     'name',
     'value'
@@ -74,7 +73,7 @@ def get_stats_data(url, days):
                search_results)
 
 
-def get_trends(stats_data, window):
+def get_moving_averages(stats_data, window):
     for branch, branch_records in groupby(sorted(stats_data, key=lambda r: r.branch), lambda r: r.branch):
         for key, test_records in groupby(sorted(branch_records, key=lambda r: r.name), lambda r: r.name):
             values = map(lambda r: r.value, sorted(test_records, key=lambda r: r.timestamp))
@@ -82,29 +81,51 @@ def get_trends(stats_data, window):
             if len(values) < window * 2:
                 continue
 
-            moving_average = exponential_moving_average(values[-window * 2:], window)
+            moving_average = exponential_moving_average(values, window)
 
-            yield TrendRecord(branch=branch, name=key, value=trend(moving_average))
+            yield MovingAverageRecord(branch=branch, name=key, value=moving_average)
 
 
 # unit tests
 
-def generate_test_classes(trends, threshold):
-    def get_class(branch, trends):
+def generate_test_classes(moving_averages):
+    def get_class(branch, moving_averages):
         class TestSequenceMeta(type):
             def __new__(mcs, name, bases, dict):
-                def gen_test(trend):
+                def gen_test_instant_raising_trend(moving_average):
                     def test(self):
-                        beautiful_value = trend.value * 100
-                        self.assertLessEqual(beautiful_value, threshold,
-                                             'Performance degradation for "{test_name}" is {percent:3.2f}%'.format(
-                                                 test_name=trend.name, percent=beautiful_value))
+                        # last build raising trend?
+                        trend_percent = trend(moving_average.value) * 100
+                        instant_threshold = 2
+
+                        self.assertLessEqual(trend_percent, instant_threshold,
+                                             'Instant performance degradation for "{test_name}" is {percent:3.2f}%'.format(
+                                                 test_name=moving_average.name, percent=trend_percent))
 
                     return test
 
-                for trend in trends:
-                    property_name = 'test_' + trend.name.replace('.', '_')
-                    dict[property_name] = gen_test(trend)
+                def gen_test_long_raising_trend(moving_average):
+                    def test(self):
+                        # long raising trend?
+                        deltas = zip(moving_average.value, moving_average.value[1:])
+                        raising_trend = reversed(list(takewhile(lambda (prv, nxt): nxt > prv, reversed(deltas))))
+                        data = list(raising_trend)
+                        if len(data) > 0:
+                            long_threshold = 3
+                            long_trend_percent = trend([data[0][0], data[-1][1]]) * 100
+
+                            self.assertLessEqual(long_trend_percent, long_threshold,
+                                                 'Long time performance degradation for "{test_name}" is {percent:3.2f}%'.format(
+                                                     test_name=moving_average.name, percent=long_trend_percent))
+
+                    return test
+
+                for moving_average in moving_averages:
+                    property_name_instant = 'test_instant_' + moving_average.name.replace('.', '_')
+                    dict[property_name_instant] = gen_test_instant_raising_trend(moving_average)
+                    property_name_long = 'test_long_' + moving_average.name.replace('.', '_')
+                    dict[property_name_long] = gen_test_long_raising_trend(moving_average)
+
                 return type.__new__(mcs, 'Test_' + str(branch), bases, dict)
 
         class TestSequence(unittest.TestCase):
@@ -112,8 +133,8 @@ def generate_test_classes(trends, threshold):
 
         return TestSequence
 
-    for branch, branch_trends in groupby(trends, key=lambda t: t.branch):
-        yield get_class(branch, branch_trends)
+    for branch, branch_moving_averages in groupby(moving_averages, key=lambda t: t.branch):
+        yield get_class(branch, branch_moving_averages)
 
 
 def run_tests(classes, merge_file):
@@ -173,11 +194,10 @@ def trend(points):
     last_points = points[-2:]
     [y1, y2] = last_points
     delta = y2 - y1
-    avg = np.average(last_points)
-    if avg == 0:
-        return 0
+    if y1 != 0:
+        return delta / y1
 
-    return delta / avg
+    return 0
 
 
 # launcher
@@ -186,8 +206,8 @@ if __name__ == '__main__':
     args, extra = parser.parse_known_args()
 
     raw_stats = get_stats_data(args.url, args.days)
-    trends = get_trends(raw_stats, args.window)
+    moving_averages = get_moving_averages(raw_stats, args.window)
 
-    classes = generate_test_classes(trends, args.threshold)
+    classes = generate_test_classes(moving_averages)
 
     run_tests(classes, args.merge_file)
