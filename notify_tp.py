@@ -27,7 +27,7 @@ def tests_failed(test_stats):
 
 def notify_tp(url, token, build_url):
     with requests.Session() as session:
-        def get_raw(collection, filter, include='[Id,Name]'):
+        def get_raw(collection, filter=None, include='[Id,Name]'):
             request_url = "{url}/api/v1/{collection}?token={token}&format=json&where={filter}&include={include})".format(
                 url=url, token=token, collection=collection, filter=filter, include=include)
 
@@ -54,30 +54,31 @@ def notify_tp(url, token, build_url):
         bug_name = 'Performance degradation. {date}'.format(date=datetime.datetime.now().date())
         description = '<!--markdown-->[Details]({build_url})'.format(build_url=build_url)
 
-        existing_bugs = get_raw('Bugs', "(Name eq '{bug_name}')".format(bug_name=bug_name),
-                                include='[Id,Name,EntityType[Id]]')
+        existing_bugs = get_raw('Bugs')
+    # existing_bugs = get_raw('Bugs', "(Name eq '{bug_name}')".format(bug_name=bug_name),
+    #                                 include='[Id,Name,EntityType[Id]]')
 
-        if len(existing_bugs) == 0:
-            project = get_raw('Projects', "(Name eq 'TP3')")[0]
-            bug = post_raw('Bugs', {
-                'name': bug_name,
-                'description': description,
-                'project': {
-                    'id': project['Id']
-                },
-                'tags': 'maintenance'
-            })
-        else:
-            existing_bug = existing_bugs[0]
-            comment = post_raw('Comments', {
-                'description': description,
-                'general': {
-                    'id': existing_bug['Id'],
-                    'entityType': {
-                        'id': existing_bug['EntityType']['Id']
-                    }
-                }
-            })
+    # if len(existing_bugs) == 0:
+    #     project = get_raw('Projects', "(Name eq 'TP3')")[0]
+    #     bug = post_raw('Bugs', {
+    #         'name': bug_name,
+    #         'description': description,
+    #         'project': {
+    #             'id': project['Id']
+    #         },
+    #         'tags': 'maintenance'
+    #     })
+    # else:
+    #     existing_bug = existing_bugs[0]
+    #     comment = post_raw('Comments', {
+    #         'description': description,
+    #         'general': {
+    #             'id': existing_bug['Id'],
+    #             'entityType': {
+    #                 'id': existing_bug['EntityType']['Id']
+    #             }
+    #         }
+    #     })
 
 
 # launcher
