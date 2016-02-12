@@ -54,7 +54,6 @@ def notify_tp(url, token, build_url):
         bug_name = 'Performance degradation. {date}'.format(date=datetime.datetime.now().date())
         description = '<!--markdown-->[Details]({build_url})'.format(build_url=build_url)
 
-        # existing_bugs = get_raw('Bugs')
         existing_bugs = get_raw('Bugs', "(Name eq '{bug_name}')".format(bug_name=bug_name),
                                 include='[Id,Name,EntityType[Id]]')
 
