@@ -31,11 +31,17 @@ def notify_tp(url, token, build_url):
             request = session.get(
                 "{url}/api/v1/{collection}?token={token}&format=json&where={filter}&include={include})"
                     .format(url=url, token=token, collection=collection, filter=filter, include=include))
+
+            print 'get_raw', request.content
+
             return json.loads(request.content)["Items"]
 
         def post_raw(collection, data):
             request = session.post("{url}/api/v1/{collection}?token={token}&format=json"
                                    .format(url=url, token=token, collection=collection), data=json.dumps(data))
+
+            print 'post_raw', request.content
+
             return json.loads(request.content)
 
         bug_name = 'Performance degradation. {date}'.format(date=datetime.datetime.now().date())
