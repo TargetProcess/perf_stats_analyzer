@@ -28,6 +28,8 @@ def tests_failed(test_stats):
 def notify_tp(url, token, build_url):
     with requests.Session() as session:
         def get_raw(collection, filter='', include='[Id,Name]'):
+            print 'token', token
+
             request_url = "{url}/api/v1/{collection}?token={token}&format=json&where={filter}&include={include}".format(
                 url=url, token=token, collection=collection, filter=filter, include=include)
 
