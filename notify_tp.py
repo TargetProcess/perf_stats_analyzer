@@ -33,8 +33,6 @@ def notify_tp(url, token, build_url):
 
             request = session.get(request_url)
 
-            print 'get_raw', request.content
-
             return request.json()["Items"]
 
         def post_raw(collection, data):
@@ -42,8 +40,6 @@ def notify_tp(url, token, build_url):
                                                                                        collection=collection)
 
             request = session.post(request_url, data=json.dumps(data))
-
-            print 'post_raw', request.content
 
             return request.json()
 
