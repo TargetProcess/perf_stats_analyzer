@@ -28,12 +28,8 @@ def tests_failed(test_stats):
 def notify_tp(url, token, build_url):
     with requests.Session() as session:
         def get_raw(collection, filter='', include='[Id,Name]'):
-            print 'token', token
-
-            request_url = "{url}/api/v1/{collection}?format=json&where={filter}&include={include}&token={token}".format(
+            request_url = "{url}/api/v1/{collection}?format=json&token={token}&where={filter}&include={include}".format(
                 url=url, token=token, collection=collection, filter=filter, include=include)
-
-            print 'get_raw', request_url
 
             request = session.get(request_url)
 
@@ -42,10 +38,8 @@ def notify_tp(url, token, build_url):
             return request.json()["Items"]
 
         def post_raw(collection, data):
-            request_url = "{url}/api/v1/{collection}?format=json?token={token}".format(url=url, token=token,
+            request_url = "{url}/api/v1/{collection}?format=json&token={token}".format(url=url, token=token,
                                                                                        collection=collection)
-
-            print 'post_raw', request_url
 
             request = session.post(request_url, data=json.dumps(data))
 
