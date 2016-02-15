@@ -27,15 +27,11 @@ def tests_failed(test_stats):
 
 def notify_tp(url, token, build_url):
     with requests.Session() as session:
-        def prepare_url(url):
-            return url.replace(' ', '%20').replace("'", '%27')
-
         def get_raw(collection, filter='', include='[Id,Name]'):
             print 'token', token
 
-            request_url = prepare_url(
-                "{url}/api/v1/{collection}?format=json&where={filter}&include={include}&token={token}".format(
-                    url=url, token=token, collection=collection, filter=filter, include=include))
+            request_url = "{url}/api/v1/{collection}?format=json&where={filter}&include={include}&token={token}".format(
+                url=url, token=token, collection=collection, filter=filter, include=include)
 
             print 'get_raw', request_url
 
@@ -46,8 +42,8 @@ def notify_tp(url, token, build_url):
             return request.json()["Items"]
 
         def post_raw(collection, data):
-            request_url = prepare_url("{url}/api/v1/{collection}?format=json?token={token}".format(url=url, token=token,
-                                                                                                   collection=collection))
+            request_url = "{url}/api/v1/{collection}?format=json?token={token}".format(url=url, token=token,
+                                                                                       collection=collection)
 
             print 'post_raw', request_url
 
