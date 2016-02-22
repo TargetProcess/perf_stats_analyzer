@@ -22,7 +22,7 @@ def get_failed_tests(xml_file):
 
 
 def tests_failed(test_stats):
-    return test_stats.tests > 0 and test_stats.failures + test_stats.errors > 0
+    return int(test_stats.tests) > 0 and int(test_stats.failures) + int(test_stats.errors) > 0
 
 
 def notify_tp(url, token, build_url):
