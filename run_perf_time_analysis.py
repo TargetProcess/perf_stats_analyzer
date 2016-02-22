@@ -108,7 +108,7 @@ def generate_test_classes(moving_averages, window):
                         raising_trend = reversed(list(takewhile(lambda (prv, nxt): nxt > prv, reversed(deltas))))
                         data = list(raising_trend)
                         if len(data) > 0:
-                            long_threshold = 6 if not moving_average.name.startswith('notifications') else 20
+                            long_threshold = 6 # if not moving_average.name.startswith('notifications') else 20
                             long_trend_percent = trend([min(moving_average.value[-window:]), data[-1][1]]) * 100
 
                             self.assertLessEqual(long_trend_percent, long_threshold,
@@ -117,7 +117,8 @@ def generate_test_classes(moving_averages, window):
 
                     return test
 
-                for moving_average in moving_averages:
+                for moving_average in filter(lambda ma: not ma.name.startswith('notifications'),
+                                             moving_averages):
                     property_name_instant = 'test_instant_' + moving_average.name.replace('.', '_')
                     dict[property_name_instant] = gen_test_instant_raising_trend(moving_average)
                     property_name_long = 'test_long_' + moving_average.name.replace('.', '_')
