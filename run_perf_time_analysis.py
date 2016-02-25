@@ -33,6 +33,17 @@ MovingAverageRecord = namedtuple('TrendRecord', [
     'value'
 ])
 
+# place excluded metrics here
+# metric can be temporarily excluded if it's very unstable and requires further investigation
+exclude_metric = [
+    lambda m: m.name in ['tc by us list - treeView # basic_load_cat'],
+    lambda m: m.name.startswith('notifications')
+]
+
+
+def filter_excluded(metrics):
+    return filter(lambda metric: all(map(lambda exclude: not exclude(metric), exclude_metric)), metrics)
+
 
 # data processing
 
@@ -80,7 +91,7 @@ def get_moving_averages(stats_data, window):
             if len(values) < window * 2:
                 continue
 
-            moving_average = exponential_moving_average(values, window)
+            moving_average = holt_winters_second_order_ewma(np.array(values), span=window, beta=0.3)
 
             yield MovingAverageRecord(branch=branch, name=key, value=moving_average)
 
@@ -108,7 +119,7 @@ def generate_test_classes(moving_averages, window):
                         raising_trend = reversed(list(takewhile(lambda (prv, nxt): nxt > prv, reversed(deltas))))
                         data = list(raising_trend)
                         if len(data) > 0:
-                            long_threshold = 6 # if not moving_average.name.startswith('notifications') else 20
+                            long_threshold = 6
                             long_trend_percent = trend([min(moving_average.value[-window:]), data[-1][1]]) * 100
 
                             self.assertLessEqual(long_trend_percent, long_threshold,
@@ -117,8 +128,7 @@ def generate_test_classes(moving_averages, window):
 
                     return test
 
-                for moving_average in filter(lambda ma: not ma.name.startswith('notifications'),
-                                             moving_averages):
+                for moving_average in moving_averages:
                     property_name_instant = 'test_instant_' + moving_average.name.replace('.', '_')
                     dict[property_name_instant] = gen_test_instant_raising_trend(moving_average)
                     property_name_long = 'test_long_' + moving_average.name.replace('.', '_')
@@ -175,17 +185,16 @@ def merge_test_results(output_file):
 
 # stats calculations
 
-def simple_moving_average(values, window):
-    weights = np.repeat(-.5, window) / window
-
-    return np.convolve(values, weights, 'valid')
-
-
-def exponential_moving_average(values, window):
-    weights = np.ma.exp(np.linspace(1, 0, window))
-    weights /= weights.sum()
-
-    return np.convolve(values, weights)[window - 1: len(values)]
+def holt_winters_second_order_ewma(x, span, beta):
+    N = x.size
+    alpha = 2.0 / (1 + span)
+    s = np.zeros((N,))
+    b = np.zeros((N,))
+    s[0] = x[0]
+    for i in range(1, N):
+        s[i] = alpha * x[i] + (1 - alpha) * (s[i - 1] + b[i - 1])
+        b[i] = beta * (s[i] - s[i - 1]) + (1 - beta) * b[i - 1]
+    return s
 
 
 def trend(points):
@@ -204,7 +213,8 @@ if __name__ == '__main__':
     args, extra = parser.parse_known_args()
 
     raw_stats = get_stats_data(args.url, args.days)
-    moving_averages = get_moving_averages(raw_stats, args.window)
+    actual_stats = filter_excluded(raw_stats)
+    moving_averages = list(get_moving_averages(actual_stats, args.window))
 
     classes = generate_test_classes(moving_averages, args.window)
 
