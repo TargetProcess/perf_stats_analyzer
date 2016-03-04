@@ -105,7 +105,7 @@ def generate_test_classes(moving_averages, window):
                 def gen_test_instant_raising_trend(moving_average):
                     def test(self):
                         trend_percent = trend(moving_average.value) * 100
-                        instant_threshold = 2.5
+                        instant_threshold = 3
 
                         self.assertLessEqual(trend_percent, instant_threshold,
                                              'Instant performance degradation for "{test_name}" is {percent:3.2f}%'.format(
@@ -116,11 +116,10 @@ def generate_test_classes(moving_averages, window):
                 def gen_test_long_raising_trend(moving_average):
                     def test(self):
                         deltas = zip(moving_average.value, moving_average.value[1:])
-                        raising_trend = reversed(list(takewhile(lambda (prv, nxt): nxt > prv, reversed(deltas))))
-                        data = list(raising_trend)
-                        if len(data) > 0:
-                            long_threshold = 6
-                            long_trend_percent = trend([min(moving_average.value[-window:]), data[-1][1]]) * 100
+                        raising_trend = list(reversed(list(takewhile(lambda (prv, nxt): nxt > prv, reversed(deltas)))))
+                        if len(raising_trend) > 0:
+                            long_threshold = 10
+                            long_trend_percent = trend([min(moving_average.value[-window:]), raising_trend[-1][1]]) * 100
 
                             self.assertLessEqual(long_trend_percent, long_threshold,
                                                  'Long time performance degradation for "{test_name}" is {percent:3.2f}%'.format(
