@@ -118,7 +118,7 @@ def generate_test_classes(moving_averages, window):
                         deltas = zip(moving_average.value, moving_average.value[1:])
                         raising_trend = list(reversed(list(takewhile(lambda (prv, nxt): nxt > prv, reversed(deltas)))))
                         if len(raising_trend) > 0:
-                            long_threshold = 10
+                            long_threshold = 15
                             long_trend_percent = trend([min(moving_average.value[-window:]), raising_trend[-1][1]]) * 100
 
                             self.assertLessEqual(long_trend_percent, long_threshold,
