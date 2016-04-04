@@ -128,8 +128,8 @@ def generate_test_classes(moving_averages, window):
                     return test
 
                 for moving_average in moving_averages:
-                    property_name_instant = 'test_instant_' + moving_average.name.replace('.', '_')
-                    dict[property_name_instant] = gen_test_instant_raising_trend(moving_average)
+                    # property_name_instant = 'test_instant_' + moving_average.name.replace('.', '_')
+                    # dict[property_name_instant] = gen_test_instant_raising_trend(moving_average)
                     property_name_long = 'test_long_' + moving_average.name.replace('.', '_')
                     dict[property_name_long] = gen_test_long_raising_trend(moving_average)
 
