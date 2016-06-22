@@ -86,7 +86,7 @@ def get_stats_data(url, days):
 def get_moving_averages(stats_data, window):
     for branch, branch_records in groupby(sorted(stats_data, key=lambda r: r.branch), lambda r: r.branch):
         for key, test_records in groupby(sorted(branch_records, key=lambda r: r.name), lambda r: r.name):
-            values = map(lambda r: r.value, test_records)
+            values = normalize_values(map(lambda r: r.value, test_records))
 
             if len(values) < window * 2:
                 continue
@@ -94,6 +94,19 @@ def get_moving_averages(stats_data, window):
             moving_average = holt_winters_second_order_ewma(np.array(values), span=window, beta=0.3)
 
             yield MovingAverageRecord(branch=branch, name=key, value=moving_average)
+
+
+def normalize_values(values):
+    # remove last min and max elements to improve stability
+
+    reversed_values = list(reversed(values))
+    max_value_index = reversed_values.index(max(reversed_values))
+    del reversed_values[max_value_index]
+
+    min_value_index = reversed_values.index(min(reversed_values))
+    del reversed_values[min_value_index]
+
+    return list(reversed(reversed_values))
 
 
 # unit tests
@@ -105,7 +118,7 @@ def generate_test_classes(moving_averages, window):
                 def gen_test_instant_raising_trend(moving_average):
                     def test(self):
                         trend_percent = trend(moving_average.value) * 100
-                        instant_threshold = 3
+                        instant_threshold = 5
 
                         self.assertLessEqual(trend_percent, instant_threshold,
                                              'Instant performance degradation for "{test_name}" is {percent:3.2f}%'.format(
@@ -118,7 +131,7 @@ def generate_test_classes(moving_averages, window):
                         deltas = zip(moving_average.value, moving_average.value[1:])
                         raising_trend = list(reversed(list(takewhile(lambda (prv, nxt): nxt > prv, reversed(deltas)))))
                         if len(raising_trend) > 0:
-                            long_threshold = 15
+                            long_threshold = 20
                             long_trend_percent = trend([min(moving_average.value[-window:]), raising_trend[-1][1]]) * 100
 
                             self.assertLessEqual(long_trend_percent, long_threshold,
