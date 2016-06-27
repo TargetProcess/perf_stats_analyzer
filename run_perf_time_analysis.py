@@ -103,8 +103,9 @@ def normalize_values(values):
     max_value_index = reversed_values.index(max(reversed_values))
     del reversed_values[max_value_index]
 
-    min_value_index = reversed_values.index(min(reversed_values))
-    del reversed_values[min_value_index]
+    if len(reversed_values) > 0:
+        min_value_index = reversed_values.index(min(reversed_values))
+        del reversed_values[min_value_index]
 
     return list(reversed(reversed_values))
 
