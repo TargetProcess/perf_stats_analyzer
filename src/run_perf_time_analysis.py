@@ -99,12 +99,12 @@ def get_stats_data(url, days):
 
     def get_name(record):
         return record['name_with_test'] if record['metric_type'] == 'http_metric' else record['name']
-
+    
     return sorted(map(lambda r: StatRecord(branch=get_branch(r['_source']),
                                            name=get_name(r['_source']),
                                            timestamp=r['_source']['datetime'],
                                            value=r['_source']['median']),
-                      filter(lambda r: get_name(r['_source']) == 'move user story - moveBatch # basic_load_cat', search_results)), key=lambda r: r.timestamp)
+                      search_results), key=lambda r: r.timestamp)
 
 
 def get_moving_averages(stats_data, window):
