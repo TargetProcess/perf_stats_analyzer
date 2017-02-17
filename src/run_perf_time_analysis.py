@@ -110,8 +110,6 @@ def get_stats_data(url, days):
 def get_moving_averages(stats_data, window):
     for branch, branch_records in groupby(sorted(stats_data, key=lambda r: r.branch), lambda r: r.branch):
         for key, test_records in groupby(sorted(branch_records, key=lambda r: r.name), lambda r: r.name):
-            if key != 'move user story - moveBatch # basic_load_cat':
-                continue
             values = normalize_values(map(lambda r: r.value, test_records))
 
             if len(values) < window * 2:
