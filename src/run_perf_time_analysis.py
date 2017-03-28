@@ -60,22 +60,22 @@ def get_stats_data(url, days):
     page = es.search(
         index='performance_tests_run_reports',
         scroll='2m',
-        search_type='scan',
         size=page_size,
+        sort='_doc',
         body={
             'query': {
-                'filtered': {
-                    'query': {
+                'bool': {
+                    'must': {
                         'match': {
                             'metric_type': 'http_metric'
                         }
-                    }
-                }
-            },
-            'filter': {
-                'range': {
-                    'datetime': {
-                        'gte': 'now-{days}d/d'.format(days=days)
+                    },
+                    'filter': {
+                        'range': {
+                            'datetime': {
+                                'gte': 'now-{days}d/d'.format(days=days)
+                            }
+                        }
                     }
                 }
             }
@@ -84,6 +84,7 @@ def get_stats_data(url, days):
     scroll_size = min(50000, page['hits']['total'])
     results = []
 
+    results.append(page['hits']['hits'])
     while scroll_size > 0:
         print 'Scrolling...'
         page = es.scroll(scroll_id=sid, scroll='2m')
