@@ -13,7 +13,7 @@ from elasticsearch import Elasticsearch
 parser = argparse.ArgumentParser(
     description='Analyze perf tests data within the time period.')
 parser.add_argument('-u', '--url', type=str, nargs='?',
-                    help='ElasticSearch url', default='http://192.168.2.95:9200')
+                    help='ElasticSearch url', default='http://search-elasticsearch-5-3-mqiimqyvrjk2kd72o4bq47rtre.us-east-1.es.amazonaws.com:80')
 parser.add_argument('-w', '--window', type=int, nargs='?',
                     help='Moving average window', default=10)
 parser.add_argument('-d', '--days', type=int, nargs='?',
