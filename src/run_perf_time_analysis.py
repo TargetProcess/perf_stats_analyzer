@@ -8,17 +8,24 @@ from itertools import groupby, takewhile
 
 import numpy as np
 import xmlrunner
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, RequestsHttpConnection
+from requests_aws4auth import AWS4Auth
 
 parser = argparse.ArgumentParser(
     description='Analyze perf tests data within the time period.')
-parser.add_argument('-u', '--url', type=str, nargs='?',
-                    help='ElasticSearch url', default='http://search-elasticsearch-5-3-mqiimqyvrjk2kd72o4bq47rtre.us-east-1.es.amazonaws.com:80')
+parser.add_argument('-eh', '--es-host', type=str, required=True,
+                    help='ElasticSearch AWS host')
+parser.add_argument('-er', '--es-region', type=str, required=True,
+                    help='ElasticSearch AWS region')
+parser.add_argument('-eaki', '--es-access-key-id', type=str, required=True,
+                    help='ElasticSearch AWS Access Key ID')
+parser.add_argument('-esak', '--es-secret-access-key', type=str, required=True,
+                    help='ElasticSearch AWS Secret Access Key')
 parser.add_argument('-w', '--window', type=int, nargs='?',
                     help='Moving average window', default=10)
 parser.add_argument('-d', '--days', type=int, nargs='?',
                     help='Number of days to analyze', default=20)
-parser.add_argument('-mf', '--merge_file',
+parser.add_argument('-mf', '--merge-file',
                     help='merge all test results xml into one file')
 
 directory = '.results'
@@ -53,8 +60,15 @@ def filter_excluded(metrics):
 
 # data processing
 
-def get_stats_data(url, days):
-    es = Elasticsearch([url])
+def get_stats_data(host, region, access_key_id, secret_access_key, days):
+    awsauth = AWS4Auth(access_key_id, secret_access_key, region, 'es')
+    es = Elasticsearch(
+        hosts=[{'host': host, 'port': 443}],
+        http_auth=awsauth,
+        use_ssl=True,
+        verify_certs=True,
+        connection_class=RequestsHttpConnection
+    )
     page_size = 10000
 
     page = es.search(
@@ -257,7 +271,7 @@ def trend(points):
 if __name__ == '__main__':
     args, extra = parser.parse_known_args()
 
-    raw_stats = get_stats_data(args.url, args.days)
+    raw_stats = get_stats_data(args.es_host, args.es_region, args.es_access_key_id, args.es_secret_access_key, args.days)
     actual_stats = filter_excluded(raw_stats)
     moving_averages = list(get_moving_averages(actual_stats, args.window))
 
